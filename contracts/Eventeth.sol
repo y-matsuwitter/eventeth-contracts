@@ -19,18 +19,18 @@ contract Eventeth {
   uint private constant FEE_PRECISION = 10000;
 
   struct Candidate {
-    address registerer;
+    address registrant;
     string name;
     uint fee;
   }
 
   event Canceled(address _eventAddress, string _name);
-  event Registered(address _registerer, string _name);
-  event Deregistered(address _registerer, string _name);
-  event RequestedDelegation(address _registerer, string _name, uint _fee);
-  event CancelDelegation(address _registerer, string _name, uint _fee);
-  event AcquiredDelegation(address _registerer, string _name, uint _fee);
-  event RegistererApproved(address[] _registerers);
+  event Registered(address _registrant, string _name);
+  event Deregistered(address _registrant, string _name);
+  event RequestedDelegation(address _registrant, string _name, uint _fee);
+  event CancelDelegation(address _registrant, string _name, uint _fee);
+  event AcquiredDelegation(address _registrant, string _name, uint _fee);
+  event RegistrantApproved(address[] _registrants);
 
   /* TODO: make these to private */
   Candidate[] public candidates;
@@ -92,13 +92,10 @@ contract Eventeth {
     require(msg.value >= minimumGuarantee);
 
     var c = getCandidate(msg.sender);
-    /*if (c.registerer == msg.sender) {
-      refunds[msg.sender] += c.fee;
-    }*/
 
     addCandidate(msg.sender, _name, msg.value);
     Registered(msg.sender, _name);
-    if (c.registerer == msg.sender) {
+    if (c.registrant == msg.sender) {
       msg.sender.transfer(c.fee);
     }
   }
@@ -110,7 +107,7 @@ contract Eventeth {
     returns (bool success)
   {
     var c = getCandidate(msg.sender);
-    if (c.registerer == msg.sender) {
+    if (c.registrant == msg.sender) {
       removeCandidate(msg.sender);
       uint refund = refunds[msg.sender] + c.fee;
       msg.sender.transfer(refund);
@@ -130,20 +127,20 @@ contract Eventeth {
     returns (bool success)
   {
     var c = getCandidate(msg.sender);
-    success = c.registerer == msg.sender;
+    success = c.registrant == msg.sender;
   }
 
-  function invitationByOwner(address[] registerers)
+  function invitationByOwner(address[] registrants)
     public
     onlyOrganizer()
     notCanceled()
     returns (bool success)
   {
-    for (uint i = 0; i < registerers.length ; i++ ) {
-      var registerer = registerers[i];
-      var c = getCandidate(registerer);
-      require(c.registerer == registerer);
-      invitations.push(registerer);
+    for (uint i = 0; i < registrants.length ; i++ ) {
+      var registrant = registrants[i];
+      var c = getCandidate(registrant);
+      require(c.registrant == registrant);
+      invitations.push(registrant);
     }
     success = true;
   }
@@ -159,15 +156,15 @@ contract Eventeth {
     uint approvedCount = 0;
     uint i;
 
-    var registerers = new address[](capacity);
+    var registrants = new address[](capacity);
 
-    /* Approve prioritized registerers by an owner.*/
+    /* Approve prioritized registrants by an owner.*/
     for(i = 0; i < invitations.length && approvedCount <= capacity ; i++) {
       var c = getCandidate(invitations[i]);
-      if (c.registerer != 0x0 && approved[c.registerer].registerer == 0x0) {
-        approved[c.registerer] = c;
+      if (c.registrant != 0x0 && approved[c.registrant].registrant == 0x0) {
+        approved[c.registrant] = c;
         amount += c.fee;
-        registerers[approvedCount] = c.registerer;
+        registrants[approvedCount] = c.registrant;
         approvedCount++;
       }
     }
@@ -179,24 +176,24 @@ contract Eventeth {
       var _c = tmp[i];
 
       /* Add candidates to refunds if this event is full.*/
-      if (_c.registerer != 0x0 && approvedCount == capacity) {
-        refunds[_c.registerer] += _c.fee;
+      if (_c.registrant != 0x0 && approvedCount == capacity) {
+        refunds[_c.registrant] += _c.fee;
       }
 
-      if (_c.registerer != 0x0 && approved[_c.registerer].registerer == 0x0 && approvedCount < capacity) {
-        approved[_c.registerer] = _c;
+      if (_c.registrant != 0x0 && approved[_c.registrant].registrant == 0x0 && approvedCount < capacity) {
+        approved[_c.registrant] = _c;
         amount += _c.fee;
-        registerers[approvedCount] = _c.registerer;
+        registrants[approvedCount] = _c.registrant;
         approvedCount++;
       }
     }
 
-    /* Send registerers fee to organizer.*/
+    /* Send registrants fee to organizer.*/
     uint ownerFee = amount * OWNER_FEE / FEE_PRECISION;
     organizer.transfer(amount - ownerFee);
     owner.transfer(ownerFee);
 
-    RegistererApproved(registerers);
+    RegistrantApproved(registrants);
     success = true;
   }
 
@@ -210,8 +207,8 @@ contract Eventeth {
     Canceled(address(this), name);
     for(uint i = 0; i < candidates.length ; i++){
       var c = candidates[i];
-      if (c.registerer != 0x0) {
-        refunds[c.registerer] = c.fee;
+      if (c.registrant != 0x0) {
+        refunds[c.registrant] = c.fee;
       }
     }
   }
@@ -223,7 +220,7 @@ contract Eventeth {
     constant returns (bool success)
   {
     var c = approved[msg.sender];
-    success = c.registerer == msg.sender;
+    success = c.registrant == msg.sender;
   }
 
   function checkRefund()
@@ -254,12 +251,12 @@ contract Eventeth {
     afterRegistrationEnd()
   {
     var c = approved[msg.sender];
-    require(c.registerer == msg.sender);
+    require(c.registrant == msg.sender);
 
     var _c = Candidate(msg.sender, c.name, c.fee);
     delegations[msg.sender] = _c;
     delete approved[msg.sender];
-    RequestedDelegation(_c.registerer, _c.name, _c.fee);
+    RequestedDelegation(_c.registrant, _c.name, _c.fee);
   }
 
   function cancelRegistrationTransfer()
@@ -268,12 +265,12 @@ contract Eventeth {
     afterRegistrationEnd()
   {
     var c = delegations[msg.sender];
-    require(c.registerer == msg.sender);
+    require(c.registrant == msg.sender);
 
     var _c = Candidate(msg.sender, c.name, c.fee);
     approved[msg.sender] = _c;
     delete delegations[msg.sender];
-    CancelDelegation(_c.registerer, _c.name, _c.fee);
+    CancelDelegation(_c.registrant, _c.name, _c.fee);
   }
 
   function checkRegistrationTransferring()
@@ -284,7 +281,7 @@ contract Eventeth {
     returns (bool success)
   {
     var c = delegations[msg.sender];
-    success = c.registerer == msg.sender;
+    success = c.registrant == msg.sender;
   }
 
   function acquireRegistrationTransfer(address _from, string _name)
@@ -295,7 +292,7 @@ contract Eventeth {
   {
     var c = delegations[_from];
 
-    require(c.registerer == _from && (c.fee == 0 || msg.value >= c.fee));
+    require(c.registrant == _from && (c.fee == 0 || msg.value >= c.fee));
 
     var delegation = Candidate(msg.sender, _name, c.fee);
     delete delegations[_from];
@@ -309,43 +306,43 @@ contract Eventeth {
   /*****************************/
   /***** PRIVATE FUNCTIONS *****/
   /*****************************/
-  function addCandidate(address _registerer, string _name, uint _fee) private {
+  function addCandidate(address _registrant, string _name, uint _fee) private {
     bool added = false;
     for (uint i = 0; i < candidates.length ; i++) {
       var c = candidates[i];
-      if (c.registerer == _registerer) {
-        candidates[i] = Candidate(_registerer, _name, _fee);
+      if (c.registrant == _registrant) {
+        candidates[i] = Candidate(_registrant, _name, _fee);
         added = true;
         break;
       }
     }
     if (!added) {
-      candidates.push(Candidate(_registerer, _name, _fee));
+      candidates.push(Candidate(_registrant, _name, _fee));
     }
   }
 
-  function removeCandidate(address _registerer)
+  function removeCandidate(address _registrant)
     private
     returns (bool success)
   {
     success = false;
     for (uint i = 0; i < candidates.length ; i++) {
       var c = candidates[i];
-      if (c.registerer == _registerer) {
+      if (c.registrant == _registrant) {
         delete candidates[i];
         success = true;
       }
     }
   }
 
-  function getCandidate(address _registerer)
+  function getCandidate(address _registrant)
     private
     constant
     returns (Candidate c)
   {
     for (uint i = 0; i < candidates.length ; i++) {
       var _c = candidates[i];
-      if (_c.registerer == _registerer) {
+      if (_c.registrant == _registrant) {
         c = _c;
         break;
       }

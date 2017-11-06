@@ -129,7 +129,7 @@ contract('Eventeth', function(accounts) {
     assert.isBelow(web3.eth.getBalance(account1).toNumber(), origin + web3.toWei(0.01, "ether"))
   })
 
-  it("should approve registerer.", async function(){
+  it("should approve registrant.", async function(){
     await event.register("test1", {from: account1, value: web3.toWei("0.01", "ether")})
     await event.register("test2", {from: account2, value: web3.toWei("0.02", "ether")})
     await event.register("test3", {from: account3, value: web3.toWei("0.03", "ether")})

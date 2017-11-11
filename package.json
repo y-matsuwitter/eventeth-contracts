@@ -7,9 +7,10 @@
     "test": "test"
   },
   "devDependencies": {
-    "truffle": "^3.4.11"
+    "truffle": "^4.0.1"
   },
   "scripts": {
+    "start": "truffle develop",
     "test": "truffle compile && truffle test",
     "testdocker": "truffle compile --network docker && truffle test --network docker"
   },

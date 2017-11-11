@@ -5,5 +5,8 @@ jobs:
     steps:
       - checkout
       - run:
+          name: build
+          command: docker build -t tester .
+      - run:
           name: test
-          command: docker-compose run tester
+          command: docker run tester

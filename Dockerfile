@@ -8,4 +8,4 @@ ADD migrations migrations
 ADD test test
 ADD truffle.js ./
 
-CMD ["npm", "run-script", "testdocker"]
+CMD ["npm", "test"]

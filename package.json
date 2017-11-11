@@ -11,8 +11,7 @@
   },
   "scripts": {
     "start": "truffle develop",
-    "test": "truffle compile && truffle test",
-    "testdocker": "truffle compile --network docker && truffle test --network docker"
+    "test": "truffle compile && truffle test"
   },
   "author": "y-matsuwitter",
   "license": "MIT"
